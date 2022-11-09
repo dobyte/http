@@ -5,7 +5,7 @@
  * @Desc: TODO
  */
 
-package internal
+package xfile
 
 import (
 	"io"
@@ -21,6 +21,14 @@ func Exists(path string) bool {
 	return false
 }
 
+// Base returns the last element of path.
+// Trailing path separators are removed before extracting the last element.
+// If the path is empty, Base returns ".".
+// If the path consists entirely of separators, Base returns a single separator.
+func Base(path string) string {
+	return filepath.Base(path)
+}
+
 // SaveToFile save data to file.
 func SaveToFile(path string, data []byte) error {
 	dir := filepath.Dir(path)
@@ -29,19 +37,19 @@ func SaveToFile(path string, data []byte) error {
 			return err
 		}
 	}
-	
+
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(0666))
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	
+
 	if n, err := f.Write(data); err != nil {
 		return err
 	} else if n < len(data) {
 		return io.ErrShortWrite
 	}
-	
+
 	return nil
 }
 

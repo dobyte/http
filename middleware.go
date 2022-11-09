@@ -7,13 +7,13 @@
 
 package http
 
-type MiddlewareFunc = func(r *Request) (*Response, error)
+type MiddlewareFunc = func(r Request) (*Response, error)
 
 const middlewareKey = "__httpClientMiddlewareKey"
 
 type middleware struct {
 	err      error
-	req      *Request
+	req      Request
 	resp     *Response
 	index    int
 	handlers []MiddlewareFunc
@@ -27,6 +27,6 @@ func (m *middleware) Next() (*Response, error) {
 			return m.resp, m.err
 		}
 	}
-	
+
 	return m.resp, m.err
 }

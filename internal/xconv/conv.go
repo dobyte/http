@@ -5,7 +5,7 @@
  * @Desc: TODO
  */
 
-package internal
+package xconv
 
 import (
 	"encoding"
@@ -68,20 +68,20 @@ func String(any interface{}) string {
 		if v == nil {
 			return ""
 		}
-		
+
 		if i, ok := v.(stringInterface); ok {
 			return i.String()
 		}
-		
+
 		if i, ok := v.(errorInterface); ok {
 			return i.Error()
 		}
-		
+
 		var (
 			rv   = reflect.ValueOf(v)
 			kind = rv.Kind()
 		)
-		
+
 		switch kind {
 		case reflect.Chan,
 			reflect.Map,
@@ -96,11 +96,11 @@ func String(any interface{}) string {
 		case reflect.String:
 			return rv.String()
 		}
-		
+
 		if kind == reflect.Ptr {
 			return String(rv.Elem().Interface())
 		}
-		
+
 		if b, e := json.Marshal(v); e != nil {
 			return fmt.Sprint(v)
 		} else {
@@ -112,7 +112,7 @@ func String(any interface{}) string {
 func Scan(b []byte, any interface{}) error {
 	switch v := any.(type) {
 	case nil:
-		return fmt.Errorf("cache: Scan(nil)")
+		return fmt.Errorf("http: Scan(nil)")
 	case *string:
 		*v = String(b)
 		return nil
@@ -211,16 +211,16 @@ func Scan(b []byte, any interface{}) error {
 			rv   = reflect.ValueOf(v)
 			kind = rv.Kind()
 		)
-		
+
 		if kind != reflect.Ptr {
 			return fmt.Errorf("can't unmarshal %T", v)
 		}
-		
+
 		switch kind = rv.Elem().Kind(); kind {
 		case reflect.Array, reflect.Slice, reflect.Map, reflect.Struct:
 			return json.Unmarshal(b, v)
 		}
-		
+
 		return fmt.Errorf("can't unmarshal %T", v)
 	}
 }

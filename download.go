@@ -8,10 +8,11 @@
 package http
 
 import (
+	"github.com/dobyte/http/internal/rand"
+	"github.com/dobyte/http/internal/stream"
+	"github.com/dobyte/http/internal/xfile"
 	"os"
 	"strings"
-	
-	"github.com/dobyte/http/internal"
 )
 
 var contentTypeToFileSuffix = map[string]string{
@@ -39,49 +40,51 @@ var contentTypeToFileSuffix = map[string]string{
 	"application/x-dbm":              ".dbm",
 }
 
-type Download struct {
-	request *Request
+type download struct {
+	request *request
 }
 
-func NewDownload(c *Client) *Download {
-	return &Download{
-		request: NewRequest(c),
-	}
+func newDownload(c *Client) *download {
+	return &download{request: newRequest(c)}
 }
 
-// Download download a file from the network address to the local.
-func (d *Download) Download(url, dir string, filename ...string) (string, error) {
-	resp, err := d.request.request(MethodGet, url)
+// Download a file from the network address to the local.
+func (d *download) download(url, dir string, filename ...string) (string, error) {
+	resp, err := d.request.request(MethodGet, url, nil, nil)
 	if err != nil {
 		return "", err
 	}
-	
+
+	buf, err := resp.ReadBody()
+	if err != nil {
+		return "", nil
+	}
+
 	var path string
-	
 	if len(filename) > 0 {
 		path = strings.TrimRight(dir, string(os.PathSeparator)) + string(os.PathSeparator) + filename[0]
 	} else {
-		path = d.genFilePath(resp, dir)
+		path = d.genFilePath(buf, dir)
 	}
-	
-	if err = internal.SaveToFile(path, resp.ReadBytes()); err != nil {
+
+	if err = xfile.SaveToFile(path, buf); err != nil {
 		return "", err
 	}
-	
+
 	return path, nil
 }
 
 // genFilePath generate file path based on response content type
-func (d *Download) genFilePath(resp *Response, dir string) string {
-	path := strings.TrimRight(dir, string(os.PathSeparator)) + string(os.PathSeparator) + internal.RandStr(16)
-	
-	if suffix := internal.GetFileType(resp.ReadBytes()); suffix != "" {
+func (d *download) genFilePath(buf []byte, dir string) string {
+	path := strings.TrimRight(dir, string(os.PathSeparator)) + string(os.PathSeparator) + rand.Str(16)
+
+	if suffix := stream.GetFileType(buf); suffix != "" {
 		path += "." + suffix
 	}
-	
-	if internal.Exists(path) {
-		return d.genFilePath(resp, dir)
+
+	if xfile.Exists(path) {
+		return d.genFilePath(buf, dir)
 	}
-	
+
 	return path
 }

@@ -9,6 +9,7 @@ package internal
 
 import (
 	"encoding/json"
+	"github.com/dobyte/http/internal/xconv"
 	"net/url"
 	"strings"
 )
@@ -28,47 +29,47 @@ func BuildParams(params interface{}) string {
 			params = nil
 		}
 	}
-	
+
 	m := make(map[string]interface{})
-	
+
 	if params != nil {
 		if b, err := json.Marshal(params); err != nil {
-			return String(params)
+			return xconv.String(params)
 		} else if err = json.Unmarshal(b, &m); err != nil {
-			return String(params)
+			return xconv.String(params)
 		}
 	} else {
 		return ""
 	}
-	
+
 	urlEncode := true
-	
+
 	if len(m) == 0 {
-		return String(params)
+		return xconv.String(params)
 	}
-	
+
 	for k, v := range m {
-		if strings.Contains(k, fileUploadingKey) || strings.Contains(String(v), fileUploadingKey) {
+		if strings.Contains(k, fileUploadingKey) || strings.Contains(xconv.String(v), fileUploadingKey) {
 			urlEncode = false
 			break
 		}
 	}
-	
+
 	var (
 		s   = ""
 		str = ""
 	)
-	
+
 	for k, v := range m {
 		if len(str) > 0 {
 			str += "&"
 		}
-		s = String(v)
+		s = xconv.String(v)
 		if urlEncode && len(s) > len(fileUploadingKey) && strings.Compare(s[0:len(fileUploadingKey)], fileUploadingKey) != 0 {
 			s = url.QueryEscape(s)
 		}
 		str += k + "=" + s
 	}
-	
+
 	return str
 }

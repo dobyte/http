@@ -5,7 +5,7 @@
  * @Desc: TODO
  */
 
-package internal
+package stream
 
 import (
 	"bytes"
@@ -81,21 +81,21 @@ func bytesToHexString(stream []byte) string {
 	if stream == nil || len(stream) <= 0 {
 		return ""
 	}
-	
+
 	var (
 		hv   string
 		res  = bytes.Buffer{}
 		temp = make([]byte, 0)
 	)
-	
+
 	for _, v := range stream {
 		if hv = hex.EncodeToString(append(temp, v&0xFF)); len(hv) < 2 {
 			res.WriteString(strconv.FormatInt(int64(0), 10))
 		}
-		
+
 		res.WriteString(hv)
 	}
-	
+
 	return res.String()
 }
 
@@ -105,16 +105,16 @@ func GetFileType(stream []byte) string {
 		fileType string
 		fileCode = bytesToHexString(stream)
 	)
-	
+
 	fileTypeMap.Range(func(key, value interface{}) bool {
 		if strings.HasPrefix(fileCode, strings.ToLower(key.(string))) ||
 			strings.HasPrefix(key.(string), strings.ToLower(fileCode)) {
 			fileType = value.(string)
 			return false
 		}
-		
+
 		return true
 	})
-	
+
 	return fileType
 }
