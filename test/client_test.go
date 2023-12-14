@@ -23,18 +23,18 @@ const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlc2MiOjE2MjgwNDAzMjYxNTQ2
 
 func TestClient_Get(t *testing.T) {
 	client := http.NewClient()
-	client.SetBaseUrl("http://117.50.20.231:8080")
+	client.SetBaseUrl("http://www.baidu.com")
 	client.Use(func(r http.Request) (*http.Response, error) {
 		return r.Next()
 	})
 
 	data := struct {
-		IsForce bool `json:"is_force"`
+		Code string `json:"code"`
 	}{
-		IsForce: false,
+		Code: "",
 	}
 
-	resp, err := client.Get("/notify/announcement", data)
+	resp, err := client.Get("/", data)
 	if err != nil {
 		t.Fatal(err)
 	}

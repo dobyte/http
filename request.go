@@ -57,7 +57,7 @@ func (r *request) request(method, url string, data interface{}, opts ...*Request
 func (r *request) prepare(method, url string, data interface{}, opts ...*RequestOptions) (req *http.Request, err error) {
 	var (
 		buf     []byte
-		body    *bytes.Buffer
+		body    = bytes.NewBuffer(nil)
 		headers = r.client.GetHeaders()
 		cookies = r.client.GetCookies()
 	)
@@ -100,11 +100,11 @@ func (r *request) prepare(method, url string, data interface{}, opts ...*Request
 			}
 		}
 
-		body = bytes.NewBuffer(buf)
+		body.Write(buf)
 	default:
 		switch v := data.(type) {
 		case nil:
-			body = bytes.NewBuffer(buf)
+			// ignore
 		case string:
 			buf = []byte(v)
 		case []byte:
@@ -119,14 +119,14 @@ func (r *request) prepare(method, url string, data interface{}, opts ...*Request
 		if len(buf) > 0 {
 			if (buf[0] == '[' || buf[0] == '{') && json.Valid(buf) {
 				headers[HeaderContentType] = ContentTypeJson
-				body = bytes.NewBuffer(buf)
+				body.Write(buf)
 			} else if matched, _ := regexp.Match(`^[\w\[\]]+=.+`, buf); matched {
 				if method != MethodGet {
 					headers[HeaderContentType] = ContentTypeFormUrlEncoded
-					body = bytes.NewBuffer(buf)
+					body.Write(buf)
 				}
 			} else {
-				body = bytes.NewBuffer(buf)
+				body.Write(buf)
 			}
 		}
 	}

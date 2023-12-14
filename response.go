@@ -9,7 +9,7 @@ package http
 
 import (
 	"github.com/dobyte/http/internal/xconv"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"sync"
 )
@@ -31,8 +31,12 @@ type Response struct {
 
 // ReadBody retrieves and returns the response content as []byte.
 func (r *Response) ReadBody() ([]byte, error) {
+	if r == nil {
+		return nil, nil
+	}
+
 	r.bodyOnce.Do(func() {
-		r.body, r.err = ioutil.ReadAll(r.Response.Body)
+		r.body, r.err = io.ReadAll(r.Response.Body)
 		_ = r.Close()
 	})
 

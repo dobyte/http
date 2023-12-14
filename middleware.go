@@ -21,8 +21,9 @@ type middleware struct {
 
 // Next exec the next middleware.
 func (m *middleware) Next() (*Response, error) {
+	m.index++
+
 	if m.index < len(m.handlers) {
-		m.index++
 		if m.resp, m.err = m.handlers[m.index](m.req); m.err != nil {
 			return m.resp, m.err
 		}

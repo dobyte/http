@@ -38,7 +38,7 @@ func (e *executor) call(req *http.Request) (resp *Response, err error) {
 		handlers := make([]MiddlewareFunc, 0, len(middlewares)+1)
 		handlers = append(handlers, e.client.getMiddlewares()...)
 		handlers = append(handlers, func(r Request) (*Response, error) {
-			return r.Next()
+			return e.doRequest()
 		})
 		e.request = e.request.WithContext(context.WithValue(e.request.Context(), middlewareKey, &middleware{
 			req:      e,
