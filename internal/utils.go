@@ -65,7 +65,7 @@ func BuildParams(params interface{}) string {
 			str += "&"
 		}
 		s = xconv.String(v)
-		if urlEncode && len(s) > len(fileUploadingKey) && strings.Compare(s[0:len(fileUploadingKey)], fileUploadingKey) != 0 {
+		if urlEncode {
 			s = url.QueryEscape(s)
 		}
 		str += k + "=" + s
