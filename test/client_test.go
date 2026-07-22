@@ -10,13 +10,14 @@ package test_test
 import (
 	"context"
 	"fmt"
-	"github.com/dobyte/http"
 	"io/ioutil"
 	stdhttp "net/http"
 	"os"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/dobyte/http"
 )
 
 const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlc2MiOjE2MjgwNDAzMjYxNTQ2MzIwMDAsImV4cCI6MTYyODIyMDMyNiwiaWF0IjoxNjI4MDQwMzI2LCJpZCI6MX0.KM19c6URIih-5SyycYIjNAdSiPKxMQEz3DoROm0N3nw"
@@ -134,16 +135,12 @@ func BenchmarkClient_Get(b *testing.B) {
 
 	var wg sync.WaitGroup
 
-	for i := 0; i < b.N; i++ {
-		wg.Add(1)
-		go func() {
-			_, err := client.Request(http.MethodGet, "", nil, nil)
-			if err != nil {
+	for b.Loop() {
+		wg.Go(func() {
+			if _, err := client.Request(http.MethodGet, "", nil, nil); err != nil {
 				b.Error(err)
 			}
-
-			wg.Done()
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -164,7 +161,7 @@ func TestClient_Request(t *testing.T) {
 	type args struct {
 		method string
 		url    string
-		data   interface{}
+		data   any
 		opts   []*http.RequestOptions
 	}
 	tests := []struct {

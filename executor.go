@@ -10,6 +10,7 @@ import (
 
 type Request interface {
 	Next() (*Response, error)
+	Retry() (*Response, error)
 	Request() *http.Request
 }
 
@@ -30,6 +31,27 @@ func (e *executor) Next() (*Response, error) {
 
 func (e *executor) Request() *http.Request {
 	return e.request
+}
+
+func (e *executor) Retry() (*Response, error) {
+	if e.request.GetBody != nil {
+		body, err := e.request.GetBody()
+		if err != nil {
+			return nil, err
+		}
+		e.request.Body = body
+	}
+
+	if v := e.request.Context().Value(middlewareKey); v != nil {
+		if m, ok := v.(*middleware); ok {
+			m.index = -1
+			m.resp = nil
+			m.err = nil
+			return m.Next()
+		}
+	}
+
+	return e.doRequest()
 }
 
 func (e *executor) call(req *http.Request) (resp *Response, err error) {
