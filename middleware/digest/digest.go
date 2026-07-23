@@ -12,11 +12,12 @@ import (
 )
 
 type digestChallenge struct {
-	realm     string
-	nonce     string
-	opaque    string
-	qop       string
-	algorithm string
+	realm         string
+	nonce         string
+	opaque        string
+	qop           string
+	algorithm     string
+	algorithmOrig string
 }
 
 func New(config Config) http.MiddlewareFunc {
@@ -108,6 +109,7 @@ func (d *digestAuth) parseDigestChallenge(header string) *digestChallenge {
 		case "qop", "qop-options":
 			challenge.qop = value
 		case "algorithm":
+			challenge.algorithmOrig = value
 			challenge.algorithm = strings.ToUpper(value)
 		}
 	}
@@ -171,7 +173,7 @@ func (d *digestAuth) computeDigestAuth(challenge *digestChallenge, method, uri s
 
 	var sb strings.Builder
 	sb.WriteString("Digest ")
-	sb.WriteString(fmt.Sprintf(`username="%s", `, d.config.Username))
+	sb.WriteString(fmt.Sprintf(`username="%s", `, d.escapeQuotedString(d.config.Username)))
 	sb.WriteString(fmt.Sprintf(`realm="%s", `, challenge.realm))
 	sb.WriteString(fmt.Sprintf(`nonce="%s", `, challenge.nonce))
 	sb.WriteString(fmt.Sprintf(`uri="%s", `, uri))
@@ -180,8 +182,8 @@ func (d *digestAuth) computeDigestAuth(challenge *digestChallenge, method, uri s
 	if challenge.opaque != "" {
 		sb.WriteString(fmt.Sprintf(`, opaque="%s"`, challenge.opaque))
 	}
-	if challenge.algorithm != "" {
-		sb.WriteString(fmt.Sprintf(`, algorithm=%s`, challenge.algorithm))
+	if challenge.algorithmOrig != "" {
+		sb.WriteString(fmt.Sprintf(`, algorithm=%s`, challenge.algorithmOrig))
 	}
 	if qop != "" {
 		sb.WriteString(fmt.Sprintf(`, qop=%s, nc=%s, cnonce="%s"`, qop, nonceCount, cnonce))
@@ -248,4 +250,18 @@ func (d *digestAuth) generateCNonce() string {
 	b := make([]byte, 8)
 	_, _ = rand.Read(b)
 	return hex.EncodeToString(b)
+}
+
+func (d *digestAuth) escapeQuotedString(s string) string {
+	if !strings.ContainsAny(s, `"\`) {
+		return s
+	}
+	var sb strings.Builder
+	for _, c := range s {
+		if c == '"' || c == '\\' {
+			sb.WriteByte('\\')
+		}
+		sb.WriteRune(c)
+	}
+	return sb.String()
 }

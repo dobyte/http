@@ -75,7 +75,7 @@ func (e *executor) call(req *http.Request) (resp *Response, err error) {
 	return
 }
 
-// nitiate an HTTP request and return the response data.
+// Initiate an HTTP request and return the response data.
 func (e *executor) doRequest() (resp *Response, err error) {
 	resp = &Response{Request: e.request}
 
@@ -84,6 +84,11 @@ func (e *executor) doRequest() (resp *Response, err error) {
 			resp = nil
 		}
 	}()
+
+	var (
+		retryCount    = e.client.retryCount
+		retryInterval = e.client.retryInterval
+	)
 
 	for {
 		resp.Response, err = e.client.Do(e.request)
@@ -95,14 +100,20 @@ func (e *executor) doRequest() (resp *Response, err error) {
 			resp.Response.Body.Close()
 		}
 
-		if e.client.retryCount <= 0 {
+		if retryCount <= 0 {
 			break
 		}
 
-		e.client.retryCount--
+		retryCount--
 
-		if e.client.retryInterval > 0 {
-			time.Sleep(e.client.retryInterval)
+		if e.request.GetBody != nil {
+			if body, getErr := e.request.GetBody(); getErr == nil {
+				e.request.Body = body
+			}
+		}
+
+		if retryInterval > 0 {
+			time.Sleep(retryInterval)
 		}
 	}
 

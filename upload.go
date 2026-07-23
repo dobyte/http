@@ -5,14 +5,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/dobyte/http/internal/multipart"
-	"github.com/dobyte/http/internal/xfile"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	"github.com/dobyte/http/internal/multipart"
+	"github.com/dobyte/http/internal/xfile"
 )
 
 const (
@@ -195,7 +196,7 @@ func (r *upload) writeFiles(writer *multipart.Writer, files interface{}) error {
 	for name, paths := range set {
 		for _, path := range paths {
 			if !xfile.Exists(path) {
-				return errors.New(fmt.Sprintf(`"%s" does not exist`, path))
+				return fmt.Errorf("%s does not exist", path)
 			}
 
 			stream, err = writer.CreateFormFile(name, filepath.Base(path))

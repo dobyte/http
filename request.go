@@ -12,10 +12,11 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
-	"github.com/dobyte/http/internal"
 	"net/http"
 	"regexp"
 	"strings"
+
+	"github.com/dobyte/http/internal"
 )
 
 const (
@@ -163,7 +164,7 @@ func (r *request) prepare(method, url string, data interface{}, opts ...*Request
 
 	if len(cookies) > 0 {
 		slice := make([]string, 0, len(cookies))
-		for key, value := range r.client.cookies {
+		for key, value := range cookies {
 			slice = append(slice, key+"="+value)
 		}
 		req.Header.Set(HeaderCookie, strings.Join(slice, ";"))
