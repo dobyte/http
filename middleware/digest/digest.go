@@ -3,8 +3,11 @@ package digest
 import (
 	"crypto/md5"
 	"crypto/rand"
+	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
+	"hash"
 	nethttp "net/http"
 	"strings"
 
@@ -40,6 +43,9 @@ func New(config Config) http.MiddlewareFunc {
 
 		challenge := da.findDigestChallenge(resp.Header.Values("WWW-Authenticate"))
 		if challenge == nil {
+			return resp, err
+		}
+		if !da.supportsAlgorithm(challenge.algorithm) {
 			return resp, err
 		}
 
@@ -163,12 +169,12 @@ func (d *digestAuth) computeDigestAuth(challenge *digestChallenge, method, uri s
 	}
 
 	ha1 := d.computeHA1(challenge.realm, algorithm, challenge.nonce, cnonce)
-	ha2 := d.computeHA2(method, uri, qop, nil)
+	ha2 := d.computeHA2(method, uri, qop, nil, algorithm)
 
 	if qop != "" {
-		response = d.computeResponseQOP(ha1, ha2, challenge.nonce, nonceCount, cnonce, qop)
+		response = d.computeResponseQOP(ha1, ha2, challenge.nonce, nonceCount, cnonce, qop, algorithm)
 	} else {
-		response = d.computeResponse(ha1, ha2, challenge.nonce)
+		response = d.computeResponse(ha1, ha2, challenge.nonce, algorithm)
 	}
 
 	var sb strings.Builder
@@ -208,42 +214,64 @@ func (d *digestAuth) selectQop(qop string) string {
 }
 
 func (d *digestAuth) computeHA1(realm, algorithm, nonce, cnonce string) string {
-	hash := md5.New()
-	hash.Write([]byte(d.config.Username + ":" + realm + ":" + d.config.Password))
-	ha1 := hex.EncodeToString(hash.Sum(nil))
+	h := d.newHash(algorithm)
+	h.Write([]byte(d.config.Username + ":" + realm + ":" + d.config.Password))
+	ha1 := hex.EncodeToString(h.Sum(nil))
 
-	if algorithm == "MD5-SESS" {
-		hash2 := md5.New()
-		hash2.Write([]byte(ha1 + ":" + nonce + ":" + cnonce))
-		ha1 = hex.EncodeToString(hash2.Sum(nil))
+	if strings.HasSuffix(strings.ToUpper(algorithm), "-SESS") {
+		h = d.newHash(algorithm)
+		h.Write([]byte(ha1 + ":" + nonce + ":" + cnonce))
+		ha1 = hex.EncodeToString(h.Sum(nil))
 	}
 
 	return ha1
 }
 
-func (d *digestAuth) computeHA2(method, uri, qop string, entityBody []byte) string {
-	hash := md5.New()
+func (d *digestAuth) computeHA2(method, uri, qop string, entityBody []byte, algorithm string) string {
+	var value string
 
 	if qop == "auth-int" && entityBody != nil {
-		bodyHash := md5.Sum(entityBody)
-		hash.Write([]byte(method + ":" + uri + ":" + hex.EncodeToString(bodyHash[:])))
+		bodyHash := d.hashString(string(entityBody), algorithm)
+		value = method + ":" + uri + ":" + bodyHash
 	} else {
-		hash.Write([]byte(method + ":" + uri))
+		value = method + ":" + uri
 	}
 
-	return hex.EncodeToString(hash.Sum(nil))
+	return d.hashString(value, algorithm)
 }
 
-func (d *digestAuth) computeResponse(ha1, ha2, nonce string) string {
-	hash := md5.New()
-	hash.Write([]byte(ha1 + ":" + nonce + ":" + ha2))
-	return hex.EncodeToString(hash.Sum(nil))
+func (d *digestAuth) computeResponse(ha1, ha2, nonce, algorithm string) string {
+	return d.hashString(ha1+":"+nonce+":"+ha2, algorithm)
 }
 
-func (d *digestAuth) computeResponseQOP(ha1, ha2, nonce, nc, cnonce, qop string) string {
-	hash := md5.New()
-	hash.Write([]byte(ha1 + ":" + nonce + ":" + nc + ":" + cnonce + ":" + qop + ":" + ha2))
-	return hex.EncodeToString(hash.Sum(nil))
+func (d *digestAuth) computeResponseQOP(ha1, ha2, nonce, nc, cnonce, qop, algorithm string) string {
+	return d.hashString(ha1+":"+nonce+":"+nc+":"+cnonce+":"+qop+":"+ha2, algorithm)
+}
+
+func (d *digestAuth) supportsAlgorithm(algorithm string) bool {
+	switch strings.TrimSuffix(strings.ToUpper(algorithm), "-SESS") {
+	case "", "MD5", "SHA-256", "SHA-512-256":
+		return true
+	default:
+		return false
+	}
+}
+
+func (d *digestAuth) newHash(algorithm string) hash.Hash {
+	switch strings.TrimSuffix(strings.ToUpper(algorithm), "-SESS") {
+	case "SHA-256":
+		return sha256.New()
+	case "SHA-512-256":
+		return sha512.New512_256()
+	default:
+		return md5.New()
+	}
+}
+
+func (d *digestAuth) hashString(value, algorithm string) string {
+	h := d.newHash(algorithm)
+	_, _ = h.Write([]byte(value))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func (d *digestAuth) generateCNonce() string {

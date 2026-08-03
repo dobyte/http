@@ -113,7 +113,12 @@ func (e *executor) doRequest() (resp *Response, err error) {
 		}
 
 		if retryInterval > 0 {
-			time.Sleep(retryInterval)
+			select {
+			case <-e.client.ctx.Done():
+				return nil, e.client.ctx.Err()
+			case <-time.After(retryInterval):
+				// retry
+			}
 		}
 	}
 

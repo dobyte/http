@@ -63,7 +63,7 @@ func (r *upload) prepare(url string, files, data interface{}, opts ...*UploadOpt
 	}
 
 	fieldType := FieldTypeNone
-	if len(opts) > 0 {
+	if len(opts) > 0 && opts[0] != nil {
 		fieldType = opts[0].FieldType
 	}
 
@@ -208,10 +208,9 @@ func (r *upload) writeFiles(writer *multipart.Writer, files interface{}) error {
 			if err != nil {
 				return err
 			}
+			defer file.Close()
 
-			_, err = io.Copy(stream, file)
-			_ = file.Close()
-			if err != nil {
+			if _, err = io.Copy(stream, file); err != nil {
 				return err
 			}
 		}

@@ -11,6 +11,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"maps"
 	"net/http"
 	"net/http/cookiejar"
 	"sync"
@@ -65,6 +66,12 @@ func NewClient() *Client {
 	return c
 }
 
+// SetTLS Set TLS client config for the client.
+// Default is InsecureSkipVerify: true.
+func (c *Client) SetTLS(config *tls.Config) {
+	c.Transport.(*http.Transport).TLSClientConfig = config
+}
+
 // SetHeader Set a common header for the client.
 func (c *Client) SetHeader(key, value string) {
 	c.rw.Lock()
@@ -78,9 +85,7 @@ func (c *Client) SetHeaders(headers map[string]string) {
 	c.rw.Lock()
 	defer c.rw.Unlock()
 
-	for key, value := range headers {
-		c.headers[key] = value
-	}
+	maps.Copy(c.headers, headers)
 }
 
 // GetHeaders Returns all common headers.
@@ -89,9 +94,8 @@ func (c *Client) GetHeaders() map[string]string {
 	defer c.rw.RUnlock()
 
 	headers := make(map[string]string, len(c.headers))
-	for key, value := range c.headers {
-		headers[key] = value
-	}
+
+	maps.Copy(headers, c.headers)
 
 	return headers
 }
@@ -109,9 +113,7 @@ func (c *Client) SetCookies(cookies map[string]string) {
 	c.rw.Lock()
 	defer c.rw.Unlock()
 
-	for key, value := range cookies {
-		c.cookies[key] = value
-	}
+	maps.Copy(c.cookies, cookies)
 }
 
 // GetCookies Returns all common cookies.
@@ -120,9 +122,8 @@ func (c *Client) GetCookies() map[string]string {
 	defer c.rw.RUnlock()
 
 	cookies := make(map[string]string, len(c.cookies))
-	for key, value := range c.cookies {
-		cookies[key] = value
-	}
+
+	maps.Copy(cookies, c.cookies)
 
 	return cookies
 }
@@ -177,8 +178,9 @@ func (c *Client) SetRetry(retryCount int, retryInterval time.Duration) {
 	c.retryCount, c.retryInterval = retryCount, retryInterval
 }
 
+// SetKeepAlive Set keep-alive for the client.
 func (c *Client) SetKeepAlive(enable bool) {
-	//c.Transport.
+	c.Transport.(*http.Transport).DisableKeepAlives = !enable
 }
 
 // Use sets middleware for the client.

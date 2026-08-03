@@ -57,7 +57,7 @@ func (d *download) download(url, dir string, filename ...string) (string, error)
 
 	buf, err := resp.ReadBody()
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	var path string

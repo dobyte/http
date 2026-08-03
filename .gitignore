@@ -3,3 +3,4 @@
 .vscode
 go.sum
 *.png
+.tmp-gocache/
